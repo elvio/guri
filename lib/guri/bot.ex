@@ -1,28 +1,12 @@
 defmodule Guri.Bot do
   use GenServer
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(adapter, dispatcher) do
+    GenServer.start_link(__MODULE__, [adapter, dispatcher], name: __MODULE__)
   end
 
-  def init([]) do
-    {:ok, %{adapter_pid: nil, dispatcher_pid: nil}}
-  end
-
-  def adapter_is_ready(pid) do
-    GenServer.cast(__MODULE__, {:adapter_is_ready, pid})
-  end
-
-  def dispatcher_is_ready(pid) do
-    GenServer.cast(__MODULE__, {:dispatcher_is_ready, pid})
-  end
-
-  def adapter_pid do
-    GenServer.call(__MODULE__, :adapter_pid)
-  end
-
-  def dispatcher_pid do
-    GenServer.call(__MODULE__, :dispatcher_pid)
+  def init([adapter, dispatcher]) do
+    {:ok, %{adapter: adapter, dispatcher: dispatcher}}
   end
 
   @spec send_message(String.t) :: :ok
@@ -30,7 +14,7 @@ defmodule Guri.Bot do
     GenServer.call(__MODULE__, {:send_message, message})
   end
 
-  @spec handle_command(Command.t) :: :ok
+  @spec handle_command(Guri.Command.t) :: :ok
   def handle_command(command) do
     GenServer.call(__MODULE__, {:handle_command, command})
   end
@@ -42,11 +26,11 @@ defmodule Guri.Bot do
     {:reply, state.dispatcher_pid, state}
   end
   def handle_call({:send_message, message}, _from, state) do
-    Application.get_env(:guri, :adapter).send_message(state.adapter_pid, message)
+    state.adapter.send_message(message)
     {:reply, :ok, state}
   end
   def handle_call({:handle_command, command}, _from, state) do
-    Application.get_env(:guri, :dispatcher).dispatch(state.dispatcher_pid, command)
+    state.dispatcher.dispatch(command)
     {:reply, :ok, state}
   end
 

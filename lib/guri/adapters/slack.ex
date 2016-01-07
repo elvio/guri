@@ -7,13 +7,12 @@ defmodule Guri.Adapters.Slack do
   @spec start_link(pid) :: {:ok, pid} | {:error, any}
   def start_link(bot) do
     {websocket_url, bot_id, channel_id} = get_api_info()
-    :websocket_client.start_link(websocket_url, __MODULE__, {bot, bot_id, channel_id})
+    :websocket_client.start_link(websocket_url, __MODULE__, {bot, bot_id, channel_id}, name: __MODULE__)
   end
 
   @spec init({pid, String.t, String.t}) :: {:once, any}
   def init({bot, bot_id, channel_id}) do
-    bot.adapter_is_ready(self())
-    {:once, %{bot_id: bot_id, channel_id: channel_id}}
+    {:once, %{bot: bot, bot_id: bot_id, channel_id: channel_id}}
   end
 
   @spec send_message(pid, String.t) :: :ok
@@ -25,7 +24,7 @@ defmodule Guri.Adapters.Slack do
     raw_message
     |> decode_json()
     |> validate_message(state.bot_id, state.channel_id)
-    |> handle_message()
+    |> handle_message(state.bot)
 
     {:ok, state}
   end
@@ -50,12 +49,12 @@ defmodule Guri.Adapters.Slack do
     Map.put(message, "valid", false)
   end
 
-  defp handle_message(%{"valid" => true} = message) do
+  defp handle_message(%{"valid" => true} = message, bot) do
     message
     |> CommandParser.run()
-    |> Guri.Bot.handle_command()
+    |> bot.handle_command()
   end
-  defp handle_message(_) do
+  defp handle_message(_, _) do
   end
 
   def onconnect(_wsreq, state) do
