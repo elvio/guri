@@ -12,7 +12,6 @@ defmodule Guri.Adapters.Slack.APITest do
     channels = [%{"id" => 2, "name" => @channel_name}]
     response = %{"url" => @websocket_url, "users" => users, "channels" => channels}
 
-    API.start_link(response)
-    assert API.get_info() == %{bot_id: 1, channel_id: 2, websocket_url: String.to_char_list(@websocket_url)}
+    assert API.get_info(response) == %{bot_id: 1, channel_id: 2, websocket_url: String.to_char_list(@websocket_url)}
   end
 end
