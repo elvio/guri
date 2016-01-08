@@ -1,6 +1,5 @@
 defmodule Guri.Adapters.Slack do
   @behaviour :websocket_client
-  @behaviour Guri.Adapter.Behaviour
 
   alias Guri.Bot
   alias Guri.Adapters.Slack.{API, CommandParser}
