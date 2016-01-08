@@ -2,17 +2,18 @@ defmodule Guri.Adapters.Slack do
   @behaviour :websocket_client
   @behaviour Guri.Adapter.Behaviour
 
+  alias Guri.Bot
   alias Guri.Adapters.Slack.{API, CommandParser}
 
-  @spec start_link(pid) :: {:ok, pid} | {:error, any}
-  def start_link(bot) do
+  @spec start_link() :: {:ok, pid} | {:error, any}
+  def start_link() do
     {websocket_url, bot_id, channel_id} = get_api_info()
-    :websocket_client.start_link(websocket_url, __MODULE__, {bot, bot_id, channel_id}, name: __MODULE__)
+    :websocket_client.start_link(websocket_url, __MODULE__, {bot_id, channel_id}, name: __MODULE__)
   end
 
-  @spec init({pid, String.t, String.t}) :: {:once, any}
-  def init({bot, bot_id, channel_id}) do
-    {:once, %{bot: bot, bot_id: bot_id, channel_id: channel_id}}
+  @spec init({String.t, String.t}) :: {:once, any}
+  def init({bot_id, channel_id}) do
+    {:once, %{bot_id: bot_id, channel_id: channel_id}}
   end
 
   @spec send_message(pid, String.t) :: :ok
@@ -24,7 +25,7 @@ defmodule Guri.Adapters.Slack do
     raw_message
     |> decode_json()
     |> validate_message(state.bot_id, state.channel_id)
-    |> handle_message(state.bot)
+    |> handle_message()
 
     {:ok, state}
   end
@@ -49,10 +50,10 @@ defmodule Guri.Adapters.Slack do
     Map.put(message, "valid", false)
   end
 
-  defp handle_message(%{"valid" => true} = message, bot) do
+  defp handle_message(%{"valid" => true} = message) do
     message
     |> CommandParser.run()
-    |> bot.handle_command()
+    |> Bot.handle_command()
   end
   defp handle_message(_, _) do
   end
