@@ -28,7 +28,7 @@ defmodule Guri.Mixfile do
 
   defp description do
     """
-    Automate using chat bots
+    Automate tasks and keep everyone in the loop with Guri
     """
   end
 
