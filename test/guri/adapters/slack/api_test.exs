@@ -2,37 +2,17 @@ defmodule Guri.Adapters.Slack.APITest do
   use ExUnit.Case, async: true
   alias Guri.Adapters.Slack.API
 
-  test "returns the websocket url as char_list" do
-    url = "ws://test"
-    response = %{"url" => url}
-    assert API.websocket_url(response) == String.to_char_list(url)
-  end
+  @bot_name "test_bot"
+  @channel_name "test_channel"
+  @websocket_url "ws://socket.guri.test"
+  Application.put_env(:guri, :slack, bot_name: @bot_name, channel_name: @channel_name)
 
-  test "returns the user id by name" do
-    user_id = "UJOHNID"
-    user_name = "john"
+  test "gets api information" do
+    users = [%{"id" => 1, "name" => @bot_name}]
+    channels = [%{"id" => 2, "name" => @channel_name}]
+    response = %{"url" => @websocket_url, "users" => users, "channels" => channels}
 
-    response = %{
-      "users" => [
-        %{"id" => user_id, "name" => user_name},
-        %{"id" => "other_id", "name" => "other_name"}
-      ]
-    }
-
-    assert API.user_id_by_name(response, user_name) == user_id
-  end
-
-  test "returns the channel id by name" do
-    channel_id = "CGENERALID"
-    channel_name = "general"
-
-    response = %{
-      "channels" => [
-        %{"id" => channel_id, "name" => channel_name},
-        %{"id" => "other_id", "name" => "other_name"}
-      ]
-    }
-
-    assert API.channel_id_by_name(response, channel_name) == channel_id
+    API.start_link(response)
+    assert API.get_info() == %{bot_id: 1, channel_id: 2, websocket_url: String.to_char_list(@websocket_url)}
   end
 end

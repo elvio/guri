@@ -1,23 +1,32 @@
 defmodule Guri.Adapters.Slack.API do
-  @spec rtm_start() :: map
-  def rtm_start() do
-    request("rtm.start")
+  def start_link do
+    Agent.start_link(fn -> request("rtm.start") end, name: __MODULE__)
   end
 
-  @spec websocket_url(map) :: char_list
-  def websocket_url(response) do
-    response["url"]
-    |> String.to_char_list()
+  def start_link(response) do
+    Agent.start_link(fn -> response end, name: __MODULE__)
   end
 
-  @spec user_id_by_name(map, String.t) :: String.t
-  def user_id_by_name(response, name) do
-    exctract(response["users"], "name", name, "id")
+  def get_info do
+    %{websocket_url: websocket_url(),
+      channel_id: channel_id(),
+      bot_id: bot_id()}
   end
 
-  @spec channel_id_by_name(map, String.t) :: String.t
-  def channel_id_by_name(response, name) do
-    exctract(response["channels"], "name", name, "id")
+  defp websocket_url do
+    Agent.get(__MODULE__, fn(response) ->
+      response["url"] |> String.to_char_list
+    end)
+  end
+
+  defp channel_id, do: get_id_by_name("channels", config(:channel_name))
+  defp bot_id, do: get_id_by_name("users", config(:bot_name))
+
+  defp get_id_by_name(source, name) do
+    Agent.get(__MODULE__, fn(response) ->
+      [item] = Enum.filter(response[source], fn(c) -> c["name"] == name end)
+      item["id"]
+    end)
   end
 
   @spec request(String.t) :: map
@@ -40,12 +49,6 @@ defmodule Guri.Adapters.Slack.API do
   @spec parse_body(any) :: map
   defp parse_body(response) do
     Application.get_env(:guri, :json_library).decode!(response.body)
-  end
-
-  @spec exctract(map, String.t, String.t, String.t) :: String.t
-  defp exctract(map, key, value, field) do
-    [item] = Enum.filter(map, fn(i) -> i[key] == value end)
-    item[field]
   end
 
   @spec config(atom) :: String.t
