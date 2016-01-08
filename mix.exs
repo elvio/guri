@@ -3,7 +3,7 @@ defmodule Guri.Mixfile do
 
   def project do
     [app: :guri,
-     version: "0.0.1",
+     version: "0.1.0",
      elixir: "~> 1.2",
      description: description,
      package: package,
@@ -15,7 +15,9 @@ defmodule Guri.Mixfile do
 
   def application do
     [applications: [:logger, :crypto, :ssl, :httpoison],
-     mod: {Guri, []}]
+     mod: {Guri, []},
+     env: [json_library: Poison,
+           http_client_library: HTTPoison]]
   end
 
   defp deps do
