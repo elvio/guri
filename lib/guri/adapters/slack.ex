@@ -1,13 +1,15 @@
 defmodule Guri.Adapters.Slack do
   @behaviour :websocket_client
 
-  alias Guri.Bot
   alias Guri.Adapters.Slack.{API, CommandParser}
 
   @spec start_link() :: {:ok, pid} | {:error, any}
-  def start_link() do
-    {websocket_url, bot_id, channel_id} = get_api_info()
-    :websocket_client.start_link(websocket_url, __MODULE__, {bot_id, channel_id}, name: __MODULE__)
+  def start_link do
+    response = API.rtm_start()
+    %{websocket_url: websocket_url, channel_id: channel_id, bot_id: bot_id} = API.get_info(response)
+    {:ok, pid} = :websocket_client.start_link(websocket_url, __MODULE__, {bot_id, channel_id})
+    Process.register(pid, __MODULE__)
+    {:ok, pid}
   end
 
   @spec init({String.t, String.t}) :: {:once, any}
@@ -15,9 +17,9 @@ defmodule Guri.Adapters.Slack do
     {:once, %{bot_id: bot_id, channel_id: channel_id}}
   end
 
-  @spec send_message(pid, String.t) :: :ok
-  def send_message(pid, message) do
-    send(pid, {:send_message, message})
+  @spec send_message(String.t) :: :ok
+  def send_message(message) do
+    send(__MODULE__, {:send_message, message})
   end
 
   def websocket_handle({_type, raw_message}, _conn_state, state) do
@@ -52,9 +54,10 @@ defmodule Guri.Adapters.Slack do
   defp handle_message(%{"valid" => true} = message) do
     message
     |> CommandParser.run()
-    |> Bot.handle_command()
+    |> Guri.Dispatcher.dispatch()
   end
-  defp handle_message(_, _) do
+  defp handle_message(message) do
+    IO.puts("Ignoring messaeg: #{inspect(message)}")
   end
 
   def onconnect(_wsreq, state) do
@@ -77,14 +80,5 @@ defmodule Guri.Adapters.Slack do
 
   defp encode_json(map) do
     Application.get_env(:guri, :json_library).encode!(map)
-  end
-
-  @spec get_api_info :: {char_list, String.t, String.t}
-  defp get_api_info do
-    response = API.rtm_start()
-    websocket_url = API.websocket_url(response)
-    bot_id = API.user_id_by_name(response, Application.get_env(:guri, :slack)[:bot_name])
-    channel_id = API.channel_id_by_name(response, Application.get_env(:guri, :slack)[:channel_name])
-    {websocket_url, bot_id, channel_id}
   end
 end
