@@ -34,6 +34,7 @@ defmodule Guri.Mixfile do
 
   defp package do
     [maintainers: ["Elvio Vicosa"],
+     licenses: ["MIT"],
      links: %{"Github" => "https://github.com/elvio/guri"}]
   end
 end
