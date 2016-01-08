@@ -47,7 +47,7 @@ defmodule Guri.Dispatcher do
     :ok
   end
   defp dispatch_command(command, handler) do
-    Logger.error("Dispatching command: #{command.name}")
+    Logger.info("Dispatching command: #{command.name}")
     handler.handle_command(command)
     :ok
   end
