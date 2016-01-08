@@ -4,7 +4,6 @@ defmodule Guri.Adapters.Slack do
 
   alias Guri.Adapters.Slack.{API, CommandParser}
 
-  @spec start_link() :: {:ok, pid} | {:error, any}
   def start_link do
     response = API.rtm_start()
     %{websocket_url: websocket_url, channel_id: channel_id, bot_id: bot_id} = API.get_info(response)
@@ -39,6 +38,7 @@ defmodule Guri.Adapters.Slack do
     {:reply, {:text, reply}, state}
   end
 
+  @spec validate_message(map, String.t, String.t) :: map
   defp validate_message(message, bot_id, channel_id) do
     text = to_string(message["text"])
     type = message["type"]
@@ -47,6 +47,7 @@ defmodule Guri.Adapters.Slack do
     validate_message(message, type, sent_to_bot, sent_to_channel)
   end
 
+  @spec validate_message(map, String.t, boolean, boolean) :: map
   defp validate_message(message, "message", true, true) do
     Map.put(message, "valid", true)
   end
@@ -54,12 +55,16 @@ defmodule Guri.Adapters.Slack do
     Map.put(message, "valid", false)
   end
 
+  @spec handle_message(map) :: :ok | :ignored
   defp handle_message(%{"valid" => true} = message) do
     message
     |> CommandParser.run()
     |> Guri.Dispatcher.dispatch()
+    :ok
   end
   defp handle_message(message) do
+    Logger.info("Ignore message: #{inspect(message)}")
+    :ignored
   end
 
   def onconnect(_wsreq, state) do
@@ -70,6 +75,7 @@ defmodule Guri.Adapters.Slack do
     {:ok, state}
   end
 
+  @spec decode_json(String.t) :: map
   defp decode_json(nil) do
     %{}
   end
@@ -80,6 +86,7 @@ defmodule Guri.Adapters.Slack do
     Application.get_env(:guri, :json_library).decode!(string)
   end
 
+  @spec encode_json(map) :: String.t
   defp encode_json(map) do
     Application.get_env(:guri, :json_library).encode!(map)
   end
