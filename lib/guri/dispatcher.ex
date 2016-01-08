@@ -1,5 +1,6 @@
 defmodule Guri.Dispatcher do
   use GenServer
+  require Logger
 
   def start_link() do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -33,7 +34,15 @@ defmodule Guri.Dispatcher do
   end
   def handle_call({:dispatch, %{name: command_name} = command}, _from, state) do
     handler = state.handlers[command_name]
-    handler.handle_command(command)
+    dispatch_command(command, handler)
     {:reply, :ok, state}
+  end
+
+  defp dispatch_command(command, nil) do
+    Logger.error("No command handler specified for: #{command.name}")
+  end
+  defp dispatch_command(command, handler) do
+    Logger.error("Dispatching command: #{command.name}")
+    handler.handle_command(command)
   end
 end

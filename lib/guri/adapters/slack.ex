@@ -1,5 +1,6 @@
 defmodule Guri.Adapters.Slack do
   @behaviour :websocket_client
+  require Logger
 
   alias Guri.Adapters.Slack.{API, CommandParser}
 
@@ -14,11 +15,13 @@ defmodule Guri.Adapters.Slack do
 
   @spec init({String.t, String.t}) :: {:once, any}
   def init({bot_id, channel_id}) do
+    Logger.info("Connected to Slack")
     {:once, %{bot_id: bot_id, channel_id: channel_id}}
   end
 
   @spec send_message(String.t) :: :ok
   def send_message(message) do
+    Logger.info("Sending message to Slack channel: #{message}")
     send(__MODULE__, {:send_message, message})
   end
 
@@ -57,7 +60,6 @@ defmodule Guri.Adapters.Slack do
     |> Guri.Dispatcher.dispatch()
   end
   defp handle_message(message) do
-    IO.puts("Ignoring messaeg: #{inspect(message)}")
   end
 
   def onconnect(_wsreq, state) do
