@@ -11,7 +11,7 @@ defmodule Guri do
       worker(Guri.Dispatcher, []),
       worker(adapter, [])
     ]
-    
+
     opts = [strategy: :one_for_one, name: Guri.Supervisor]
     Supervisor.start_link(children, opts)
   end
