@@ -9,8 +9,12 @@ defmodule Guri.Dispatcher do
     {:ok, %{handlers: %{}}}
   end
 
-  def register_command_handler(command_name, handler) do
-    GenServer.cast(__MODULE__, {:register_command_handler, command_name, handler})
+  def register_handler(module, []) do
+    :ok
+  end
+  def register_handler(module, [command_name | tail]) do
+    GenServer.call(__MODULE__, {:register_handler, module, command_name})
+    register_handler(module, tail)
   end
 
   def handler_for(command_name) do
@@ -21,6 +25,9 @@ defmodule Guri.Dispatcher do
     GenServer.call(__MODULE__, {:dispatch, command})
   end
 
+  def handle_call({:register_handler, module, command_name}, _from, state) do
+    {:reply, :ok, put_in(state.handlers[command_name], module)}
+  end
   def handle_call({:handler_for, command_name}, _from, state) do
     {:reply, state.handlers[command_name], state}
   end
@@ -29,10 +36,4 @@ defmodule Guri.Dispatcher do
     handler.handle_command(command)
     {:reply, :ok, state}
   end
-
-  def handle_cast({:register_command_handler, command_name, handler}, state) do
-    {:noreply, put_in(state.handlers[command_name], handler)}
-  end
-
-  # def dispatch()
 end

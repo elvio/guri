@@ -8,16 +8,10 @@ defmodule Guri.DispatcherTest do
     def handled, do: Agent.get(__MODULE__, fn(state) -> state end)
   end
 
-  test "registers command handler" do
-    {:ok, _} = Dispatcher.start_link()
-    Dispatcher.register_command_handler("test", Handler)
-    assert Dispatcher.handler_for("test") == Handler
-  end
-
   test "dispatches a command to a handler" do
     {:ok, _} = Dispatcher.start_link()
     {:ok, _} = Handler.start_link()
-    Dispatcher.register_command_handler("test", Handler)
+    Dispatcher.register_handler(Handler, ["test"])
     command = %Command{name: "test"}
     Dispatcher.dispatch(command)
     assert Handler.handled() == [command]
