@@ -1,2 +1,2 @@
+Logger.remove_backend(:console)
 ExUnit.start()
-ExUnit.configure(no_start: true)
