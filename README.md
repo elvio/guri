@@ -60,7 +60,7 @@ config :guri, :handlers, [
 ### Creating a Handler
 
 You can create as many handlers as you wish. The example bellow is using an `Agent`, but you
-can use a `GenServer` or even a simple module. Your handler needs to call `Guri.Dispatcher.register_handler(__MODULE__, ["deploy"])` in order to answer to any `deploy` command. A single handler can handle different commands (e.g. Guri.Dispatcher.register_handler(MyApp.Deploy, ["deploy", "rollback"])).
+can use a `GenServer` or even a simple module. Your handler needs to call `Guri.Dispatcher.register_handler(__MODULE__, ["deploy"])` in order to answer to any `deploy` command. A single handler can handle different commands (e.g. `Guri.Dispatcher.register_handler(MyApp.Deploy, ["deploy", "rollback"])`).
 
 ```elixir
 # Example of handler responsible for deployments
