@@ -57,14 +57,20 @@ defmodule Guri.Adapters.Slack do
 
   @spec handle_message(map) :: :ok | :ignored
   defp handle_message(%{"valid" => true} = message) do
-    message
+    command = message
     |> CommandParser.run()
-    |> Guri.Dispatcher.dispatch()
+
+    case Guri.Router.route_to(command.name) do
+      {:ok, handler} ->
+        handler.handle_command(command)
+
+      {:error, :not_found} ->
+        Logger.error("Could not find handler for '#{command.name}' command")
+    end
+
     :ok
   end
   defp handle_message(message) do
-    Logger.info("Ignore message: #{inspect(message)}")
-    :ignored
   end
 
   def onconnect(_wsreq, state) do
