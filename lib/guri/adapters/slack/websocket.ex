@@ -47,6 +47,7 @@ defmodule Guri.Adapters.Slack.WebSocket do
   end
 
   defp send_to_handler(command, {:ok, handler}) do
+    Logger.info("Sending '#{command.name}' to '#{inspect(handler)}'")
     handler.handle_command(command)
   end
   defp send_to_handler(command, {:error, :not_found}) do
