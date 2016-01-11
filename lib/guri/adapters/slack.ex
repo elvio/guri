@@ -1,99 +1,15 @@
 defmodule Guri.Adapters.Slack do
-  @behaviour :websocket_client
-  require Logger
-
-  alias Guri.Adapters.Slack.{API, CommandParser}
+  use Supervisor
 
   def start_link do
-    response = API.rtm_start()
-    %{websocket_url: websocket_url, channel_id: channel_id, bot_id: bot_id} = API.get_info(response)
-    {:ok, pid} = :websocket_client.start_link(websocket_url, __MODULE__, {bot_id, channel_id})
-    Process.register(pid, __MODULE__)
-    {:ok, pid}
+    Supervisor.start_link(__MODULE__, [])
   end
 
-  @spec init({String.t, String.t}) :: {:once, any}
-  def init({bot_id, channel_id}) do
-    Logger.info("Connected to Slack")
-    {:once, %{bot_id: bot_id, channel_id: channel_id}}
-  end
+  def init([]) do
+    children = [
+      worker(Guri.Adapters.Slack.WebSocket, [])
+    ]
 
-  @spec send_message(String.t) :: :ok
-  def send_message(message) do
-    Logger.info("Sending message to Slack channel: #{message}")
-    send(__MODULE__, {:send_message, message})
-  end
-
-  def websocket_handle({_type, raw_message}, _conn_state, state) do
-    raw_message
-    |> decode_json()
-    |> validate_message(state.bot_id, state.channel_id)
-    |> handle_message()
-
-    {:ok, state}
-  end
-
-  def websocket_info({:send_message, message}, _conn_state, state) do
-    reply = encode_json(%{type: :message, channel: state.channel_id, text: "<!channel>: " <> message})
-    {:reply, {:text, reply}, state}
-  end
-
-  @spec validate_message(map, String.t, String.t) :: map
-  defp validate_message(message, bot_id, channel_id) do
-    text = to_string(message["text"])
-    type = message["type"]
-    sent_to_bot = String.starts_with?(text, "<@#{bot_id}>: ")
-    sent_to_channel = message["channel"] == channel_id
-    validate_message(message, type, sent_to_bot, sent_to_channel)
-  end
-
-  @spec validate_message(map, String.t, boolean, boolean) :: map
-  defp validate_message(message, "message", true, true) do
-    Map.put(message, "valid", true)
-  end
-  defp validate_message(message, _, _, _) do
-    Map.put(message, "valid", false)
-  end
-
-  @spec handle_message(map) :: :ok | :ignored
-  defp handle_message(%{"valid" => true} = message) do
-    command = message
-    |> CommandParser.run()
-
-    case Guri.Router.route_to(command.name) do
-      {:ok, handler} ->
-        handler.handle_command(command)
-
-      {:error, :not_found} ->
-        Logger.error("Could not find handler for '#{command.name}' command")
-    end
-
-    :ok
-  end
-  defp handle_message(message) do
-  end
-
-  def onconnect(_wsreq, state) do
-    {:ok, state}
-  end
-
-  def ondisconnect({:remote, :closed}, state) do
-    {:ok, state}
-  end
-
-  @spec decode_json(String.t) :: map
-  defp decode_json(nil) do
-    %{}
-  end
-  defp decode_json("") do
-    %{}
-  end
-  defp decode_json(string) do
-    Application.get_env(:guri, :json_library).decode!(string)
-  end
-
-  @spec encode_json(map) :: String.t
-  defp encode_json(map) do
-    Application.get_env(:guri, :json_library).encode!(map)
+    supervise(children, strategy: :one_for_one)
   end
 end

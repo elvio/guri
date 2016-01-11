@@ -9,7 +9,6 @@ defmodule Guri do
     |> Enum.map(fn(m) -> worker(m, []) end)
 
     children = [
-      worker(Guri.Bot, [adapter]),
       worker(adapter, [])
     ] ++ handlers
 
