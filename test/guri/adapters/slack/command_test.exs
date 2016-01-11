@@ -1,13 +1,13 @@
-defmodule Guri.Adapters.Slack.CommandParserTest do
+defmodule Guri.Adapters.Slack.CommandTest do
   use ExUnit.Case, async: true
-  alias Guri.Adapters.Slack.CommandParser
+  alias Guri.Adapters.Slack.Command
 
   test "parses single commands" do
     message = %{
       "text" => "<@id>: deploy"
     }
 
-    parsed = CommandParser.run(message)
+    parsed = Command.parse(message)
     assert parsed.name == "deploy"
     assert parsed.args == []
   end
@@ -17,7 +17,7 @@ defmodule Guri.Adapters.Slack.CommandParserTest do
       "text" => "<@id>: deploy `project` to `production`"
     }
 
-    parsed = CommandParser.run(message)
+    parsed = Command.parse(message)
     assert parsed.name == "deploy"
     assert parsed.args == ["project", "to", "production"]
   end
@@ -27,7 +27,7 @@ defmodule Guri.Adapters.Slack.CommandParserTest do
       "text" => ""
     }
 
-    parsed = CommandParser.run(message)
+    parsed = Command.parse(message)
     assert parsed.name == nil
     assert parsed.args == []
   end

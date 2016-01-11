@@ -1,25 +1,23 @@
-defmodule Guri.Adapters.Slack.CommandParser do
+defmodule Guri.Adapters.Slack.Command do
   @pattern ~r/<@(?<to>.*)>: (?<command>\S+)\s{0,1}(?<args>.*)/
 
-  alias Guri.Command
-
-  @spec run(map) :: Command.t
-  def run(%{"text" => text} = message) do
+  @spec parse(map) :: Guri.Command.t
+  def parse(%{"text" => text} = message) do
     regex = Regex.named_captures(@pattern, text)
 
-    {message, regex || %{}, %Command{}}
+    {message, regex || %{}, %Guri.Command{}}
     |> extract_command_and_args()
     |> return_command()
   end
 
-  @spec extract_command_and_args({map, map, Command.t}) :: {map, map, Command.t}
+  @spec extract_command_and_args({map, map, Guri.Command.t}) :: {map, map, Guri.Command.t}
   defp extract_command_and_args({original, regex, command}) do
     args = parse_and_clean_args(regex["args"])
-    new_command = %Command{command | name: regex["command"], args: args}
+    new_command = %Guri.Command{command | name: regex["command"], args: args}
     {original, regex, new_command}
   end
 
-  @spec return_command({map, map, Command.t}) :: Command.t
+  @spec return_command({map, map, Guri.Command.t}) :: Guri.Command.t
   defp return_command({_original, _regex, command}) do
     command
   end
