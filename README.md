@@ -17,7 +17,7 @@ Add Guri to your `mix.exs` dependencies:
 
 ```elixir
 defp deps do
-  [{:guri, "~> 0.1.0"}]
+  [{:guri, "~> 0.2.0"}]
 end
 ```
 
@@ -51,25 +51,30 @@ config :guri, :slack,
   token: "TOKEN" # Token from Slack (e.g.: abced-00000000-AASDADzxczxcasd)
 
 # Command Handlers you want to use
-config :guri, :handlers, [
-    MyApp.Deploy,
-    MyApp.Stats
-]
+#
+# MyApp.Deploy is a supervised handler
+# MyApp.Stat is a non-supervised handler
+#
+config :guri, :handlers, %{"deploy" => {:supervised, MyApp.Deploy},
+                           "stat"   => MyApp.Stat}
 ```
 
-### Creating a Handler
+With the described configuration, every time someone sends a `deploy` command, `MyApp.Deploy` will receive the command information. The same happens to the `stat` command and `MyApp.Stat` module.
 
-You can create as many handlers as you wish. The example bellow is using an `Agent`, but you
-can use a `GenServer` or even a simple module. Your handler needs to call `Guri.Dispatcher.register_handler(__MODULE__, ["deploy"])` in order to answer to any `deploy` command. A single handler can handle different commands (e.g. `Guri.Dispatcher.register_handler(MyApp.Deploy, ["deploy", "rollback"])`).
+### Command Handlers
+
+Command handlers are responsible for processing the commands published in a chat room. Using the previous example, `MyApp.Deploy` and `MyApp.Stat` are command handlers. Each command handler is able to handle a single command. A handler can be of two types:
+
+#### Supervised
+
+Supervised handlers need to keep state. You will probably use an `Agent` or `GenServer` in order to keep the state. These handlers will be started as part of the application supervision three. When defining the handler in the `config.exs` file, it uses a tuple like `{:supervised, MODULE_NAME}`.
+
+Example of `MyApp.Deploy` handler:
 
 ```elixir
-# Example of handler responsible for deployments
-
 defmodule MyApp.Deploy do
   def start_link do
-    {:ok, pid} = Agent.start_link(fn -> [] end, name: __MODULE__)
-    Guri.Dispatcher.register_handler(__MODULE__, ["deploy"])
-    {:ok, pid}
+    Agent.start_link(fn -> [] end, name: __MODULE__)
   end
 
   def handle_command(%{name: "deploy", args: []}) do
@@ -83,6 +88,24 @@ defmodule MyApp.Deploy do
   end
   def handle_command(_) do
     Guri.Bot.send_message("Sorry, I couldn't understand what you want to deploy")
+  end
+end
+```
+
+#### Non-Supervised
+
+Non-Supervised handlers don't need to keep state. They are just simple modules.
+
+Example of `MyApp.Stat` handler:
+
+```elixir
+defmodule MyApp.Stat do
+  def handle_command(%{name: "stat", args: []}) do
+    stats = StatService.get_and_process_stats()
+    Guri.Bot.send_message(stats)
+  end
+  def handle_command(_) do
+    Guri.Bot.send_message("Sorry, I couldn't understand the stat you are looking for")
   end
 end
 ```
