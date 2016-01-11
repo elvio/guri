@@ -17,7 +17,7 @@ Add Guri to your `mix.exs` dependencies:
 
 ```elixir
 defp deps do
-  [{:guri, "~> 0.2.0"}]
+  [{:guri, "~> 0.2.1"}]
 end
 ```
 
@@ -73,21 +73,23 @@ Example of `MyApp.Deploy` handler:
 
 ```elixir
 defmodule MyApp.Deploy do
+  use Guri.Handler
+
   def start_link do
     Agent.start_link(fn -> [] end, name: __MODULE__)
   end
 
   def handle_command(%{name: "deploy", args: []}) do
-    Guri.Bot.send_message("Deploying all projects to production")
+    send_message("Deploying all projects to production")
   end
   def handle_command(%{name: "deploy", args: [project]}) do
-    Guri.Bot.send_message("Deploying `#{project}` to production")
+    send_message("Deploying `#{project}` to production")
   end
   def handle_command(%{name: "deploy", args: [project, "to", env]}) do
-    Guri.Bot.send_message("Deploying `#{project}` to `#{env}`")
+    send_message("Deploying `#{project}` to `#{env}`")
   end
   def handle_command(_) do
-    Guri.Bot.send_message("Sorry, I couldn't understand what you want to deploy")
+    send_message("Sorry, I couldn't understand what you want to deploy")
   end
 end
 ```
@@ -100,12 +102,14 @@ Example of `MyApp.Stat` handler:
 
 ```elixir
 defmodule MyApp.Stat do
+  use Guri.Handler
+
   def handle_command(%{name: "stat", args: []}) do
     stats = StatService.get_and_process_stats()
-    Guri.Bot.send_message(stats)
+    send_message(stats)
   end
   def handle_command(_) do
-    Guri.Bot.send_message("Sorry, I couldn't understand the stat you are looking for")
+    send_message("Sorry, I couldn't understand the stat you are looking for")
   end
 end
 ```
